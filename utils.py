@@ -31,10 +31,17 @@ load_dotenv()
 # Initialize OpenAI client
 client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
+# Path constants
+BASE_DIR = Path(r"C:\Users\NalaBook\Desktop\Med_Note")
+TRANSCRIPTIONS_DIR = BASE_DIR / "transcriptions"
+CASE_NOTES_DIR = BASE_DIR / "case_notes"
+AUDIO_DIR = BASE_DIR / "audio_recordings"
+TEMPLATES_DIR = BASE_DIR / "templates"
+
 
 def ensure_directories_exist():
     """Ensure all required directories exist."""
-    directories = ["audio_recordings", "transcriptions", "case_notes", "templates"]
+    directories = [AUDIO_DIR, TRANSCRIPTIONS_DIR, CASE_NOTES_DIR, TEMPLATES_DIR]
     for directory in directories:
         os.makedirs(directory, exist_ok=True)
         logger.debug(f"Ensured directory exists: {directory}")
@@ -42,7 +49,6 @@ def ensure_directories_exist():
 
 def list_audio_files() -> List[Path]:
     """List all audio files in the audio_recordings directory."""
-    audio_dir = Path("audio_recordings")
     audio_files = []
     
     # Include all major audio formats
@@ -61,7 +67,7 @@ def list_audio_files() -> List[Path]:
     ]
     
     for ext in audio_formats:
-        audio_files.extend(audio_dir.glob(ext))
+        audio_files.extend(AUDIO_DIR.glob(ext))
     
     return sorted(audio_files)
 
@@ -110,12 +116,22 @@ def transcribe_audio(audio_path: Path) -> str:
                 
                 transcription = result["text"]
         
-        # Save transcription to file
-        transcript_filename = f"{audio_path.stem}.txt"
-        transcript_path = Path("transcriptions") / transcript_filename
+        # Save transcription to file with absolute path as .md
+        date_str = datetime.now().strftime("%Y%m%d")
+        transcript_filename = f"{date_str}_{audio_path.stem}_transcript.md"
+        transcript_path = TRANSCRIPTIONS_DIR / transcript_filename
         
+        # Ensure the directory exists
+        os.makedirs(TRANSCRIPTIONS_DIR, exist_ok=True)
+        
+        # Format the transcription as markdown
+        formatted_transcription = f"# Transcription: {audio_path.name}\n\n"
+        formatted_transcription += f"*Date: {datetime.now().strftime('%B %d, %Y')}*\n\n"
+        formatted_transcription += f"## Raw Transcript\n\n{transcription}\n"
+        
+        # Write the transcription to the file
         with open(transcript_path, "w", encoding="utf-8") as f:
-            f.write(transcription)
+            f.write(formatted_transcription)
             
         logger.info(f"Transcription saved to: {transcript_path}")
         console.print(f"[green]Transcription saved to:[/green] {transcript_path}")
@@ -130,7 +146,7 @@ def transcribe_audio(audio_path: Path) -> str:
 
 def load_template() -> str:
     """Load the prompt template from file."""
-    template_path = Path("templates") / "prompt.txt"
+    template_path = TEMPLATES_DIR / "prompt.txt"
     
     try:
         with open(template_path, "r", encoding="utf-8") as f:
@@ -197,8 +213,11 @@ def save_case_notes(filename: str, content: str) -> Path:
     """
     # Create filename with date
     date_str = datetime.now().strftime("%Y%m%d")
-    output_filename = f"{date_str}_{filename}.md"
-    output_path = Path("case_notes") / output_filename
+    output_filename = f"{date_str}_{filename}_notes.md"
+    output_path = CASE_NOTES_DIR / output_filename
+    
+    # Ensure the directory exists
+    os.makedirs(CASE_NOTES_DIR, exist_ok=True)
     
     with open(output_path, "w", encoding="utf-8") as f:
         f.write(content)

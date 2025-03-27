@@ -10,6 +10,7 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.prompt import Confirm
 from rich.progress import Progress, SpinnerColumn, TextColumn
+from rich import print as rprint
 
 from utils import (
     ensure_directories_exist,
@@ -25,7 +26,8 @@ from utils import (
 # Initialize Typer CLI app
 app = typer.Typer(
     help="CLI tool for transcribing and structuring chiropractic case notes",
-    add_completion=False
+    add_completion=False,
+    no_args_is_help=True  # Show help when no args are provided
 )
 
 
@@ -139,6 +141,27 @@ def version():
     console.print("Chiropractic Case Notes Generator v1.0.0")
 
 
+@app.command("help")
+def help_command():
+    """Show detailed help information and examples."""
+    rprint(Panel.fit(
+        "[bold blue]Chiropractic Case Notes Generator[/bold blue]\n\n"
+        "This tool helps you transcribe audio recordings of chiropractic sessions\n"
+        "and generates structured case notes using OpenAI's AI models.\n\n"
+        "[bold yellow]Quick Start:[/bold yellow]\n"
+        "1. Place your audio file in the [italic]audio_recordings[/italic] folder\n"
+        "2. Run: [italic]python main.py transcribe[/italic]\n"
+        "3. Select your file when prompted\n\n"
+        "[bold yellow]Common Commands:[/bold yellow]\n"
+        "- List audio files: [italic]python main.py transcribe --list[/italic]\n"
+        "- Process a specific file: [italic]python main.py transcribe \"your_recording.mp3\"[/italic]\n"
+        "- Just view notes (don't save): [italic]python main.py transcribe --no-save[/italic]\n"
+        "- Just save notes (don't display): [italic]python main.py transcribe --no-display[/italic]\n\n"
+        "[bold yellow]Need More Help?[/bold yellow]\n"
+        "See the README.md file for detailed instructions and troubleshooting."
+    ))
+
+
 @app.callback()
 def main():
     """
@@ -147,8 +170,26 @@ def main():
     A tool for transcribing audio recordings of chiropractic sessions
     and generating structured case notes using OpenAI's GPT models.
     """
-    pass
+    # Display welcome message if no command is specified
+    if len(sys.argv) == 1:
+        welcome()
+
+
+def welcome():
+    """Display welcome message and usage instructions."""
+    rprint(Panel.fit(
+        "[bold blue]Welcome to Chiropractic Case Notes Generator![/bold blue]\n\n"
+        "This tool helps you transcribe and structure chiropractic case notes.\n\n"
+        "[bold green]To get started, try one of these commands:[/bold green]\n\n"
+        "• [yellow]python main.py help[/yellow] - Show detailed help\n"
+        "• [yellow]python main.py transcribe[/yellow] - Transcribe an audio file\n"
+        "• [yellow]python main.py transcribe --list[/yellow] - List available audio files\n\n"
+        "For more information, see the README.md file."
+    ))
 
 
 if __name__ == "__main__":
+    if len(sys.argv) == 1:
+        welcome()
+        sys.exit(0)
     app() 

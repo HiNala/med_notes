@@ -144,16 +144,46 @@ def transcribe_audio(audio_path: Path) -> str:
         raise
 
 
-def load_template() -> str:
-    """Load the prompt template from file."""
+def load_template() -> Dict[str, str]:
+    """
+    Load the prompt template from file.
+    
+    Returns:
+        Dictionary containing system message and user prompt template
+    """
     template_path = TEMPLATES_DIR / "prompt.txt"
     
     try:
         with open(template_path, "r", encoding="utf-8") as f:
-            template = f.read()
+            template_content = f.read()
             
-        return template
-    
+        # Check if the template has a system message section
+        if template_content.startswith("---"):
+            # Parse the YAML-like front matter for the system message
+            parts = template_content.split("---", 2)
+            if len(parts) >= 3:
+                # Extract system message from the front matter
+                system_content = ""
+                for line in parts[1].strip().split("\n"):
+                    if line.startswith("content:"):
+                        system_content = line.replace("content:", "", 1).strip()
+                    elif line.startswith("role:") and "system" not in line:
+                        logger.warning("Template contains non-system role, ignoring")
+                
+                # Rest is the user prompt
+                user_template = parts[2].strip()
+                
+                return {
+                    "system_content": system_content,
+                    "user_template": user_template
+                }
+        
+        # If no system message found, return just the user template
+        return {
+            "system_content": "You are a helpful assistant that creates clear summaries of transcripts.",
+            "user_template": template_content
+        }
+            
     except FileNotFoundError:
         logger.error(f"Template file not found: {template_path}")
         console.print(f"[bold red]Template file not found:[/bold red] {template_path}")
@@ -173,9 +203,13 @@ def generate_case_notes(transcript: str) -> str:
     logger.info("Generating case notes from transcript")
     console.print("[bold blue]Generating[/bold blue] structured case notes...")
     
-    # Load prompt template and replace placeholder
-    template = load_template()
-    prompt = template.replace("{{TRANSCRIPT}}", transcript)
+    # Load prompt template
+    template_data = load_template()
+    system_content = template_data["system_content"]
+    user_template = template_data["user_template"]
+    
+    # Replace the transcript placeholder
+    user_prompt = user_template.replace("{{TRANSCRIPT}}", transcript)
     
     # Use model specified in environment variable or default to gpt-3.5-turbo for cost savings
     model = os.getenv("GPT_MODEL", "gpt-3.5-turbo")
@@ -187,8 +221,8 @@ def generate_case_notes(transcript: str) -> str:
             response = client.chat.completions.create(
                 model=model,
                 messages=[
-                    {"role": "system", "content": "You are a helpful assistant that creates clear summaries of transcripts. Focus on the exact content provided without making assumptions."},
-                    {"role": "user", "content": prompt}
+                    {"role": "system", "content": system_content},
+                    {"role": "user", "content": user_prompt}
                 ],
                 temperature=0.3,
                 max_tokens=4000

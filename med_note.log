@@ -20,3 +20,11 @@
 2025-03-27 01:05:04,058 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
 2025-03-27 01:05:04,066 - utils - INFO - Case notes generated successfully
 2025-03-27 01:05:04,076 - utils - INFO - Case notes saved to: C:\Users\NalaBook\Desktop\Med_Note\case_notes\20250327_000981_jfk-space-race-speech-59951_notes.md
+2025-03-27 01:09:43,322 - utils - INFO - Transcribing audio: C:\Users\NalaBook\Desktop\Med_Note\audio_recordings\000981_jfk-space-race-speech-59951.mp3
+2025-03-27 01:10:19,037 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/audio/transcriptions "HTTP/1.1 200 OK"
+2025-03-27 01:10:19,040 - utils - INFO - Transcription saved to: C:\Users\NalaBook\Desktop\Med_Note\transcriptions\20250327_000981_jfk-space-race-speech-59951_transcript.md
+2025-03-27 01:10:19,043 - utils - INFO - Generating case notes from transcript
+2025-03-27 01:10:19,044 - utils - INFO - Using model: gpt-3.5-turbo
+2025-03-27 01:10:20,715 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-03-27 01:10:20,723 - utils - INFO - Case notes generated successfully
+2025-03-27 01:10:20,731 - utils - INFO - Case notes saved to: C:\Users\NalaBook\Desktop\Med_Note\case_notes\20250327_000981_jfk-space-race-speech-59951_summary.md

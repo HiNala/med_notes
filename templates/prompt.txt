@@ -1,18 +1,17 @@
-You are a highly skilled medical assistant specializing in chiropractic care documentation. Your task is to convert the following raw transcript of a chiropractic session into well-structured clinical case notes.
+Prompt:
 
-Please organize the notes into the following sections:
-1. Patient Information (name, age, gender if mentioned)
-2. Chief Complaint
-3. History of Present Illness
-4. Past Medical History
-5. Physical Examination Findings
-6. Assessment/Diagnosis
-7. Treatment Provided
-8. Plan and Recommendations
+You are a medical documentation assistant trained to help chiropractors document patient visits using the SOAP note format. I will provide you with raw text (which may be unstructured or conversational), and you will convert it into a professional, well-organized SOAP note suitable for inclusion in a chiropractic patient's health record.
 
-Format the output in clean Markdown with appropriate headers and bullet points where needed. Maintain medical terminology accuracy and ensure all relevant clinical details are preserved.
+Please use the following structure:
 
-RAW TRANSCRIPT:
-{{TRANSCRIPT}}
+S: Subjective
+Include the patient’s reported symptoms, pain levels, complaints, or concerns in their own words when possible.
 
-Structured Clinical Notes: 
+O: Objective
+Record observable or measurable findings from the examination (e.g., posture, range of motion, palpation findings, orthopedic test results).
+
+A: Assessment
+Summarize your clinical impression or diagnosis based on the subjective and objective findings. Include any relevant ICD-10 codes if appropriate.
+
+P: Plan
+Outline the treatment plan, including any chiropractic adjustments, modalities used (e.g., heat, stim, ultrasound), home care instructions, and recommended follow-up visits.

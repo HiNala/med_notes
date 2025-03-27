@@ -1,0 +1,8 @@
+2025-03-26 23:43:52,837 - utils - INFO - Transcribing audio: audio_recordings\000981_jfk-space-race-speech-59951.mp3
+2025-03-26 23:50:14,267 - utils - INFO - Transcribing audio: audio_recordings\000981_jfk-space-race-speech-59951.mp3
+2025-03-26 23:50:50,960 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/audio/transcriptions "HTTP/1.1 200 OK"
+2025-03-26 23:50:50,977 - utils - INFO - Transcription saved to: transcriptions\000981_jfk-space-race-speech-59951.txt
+2025-03-26 23:50:50,979 - utils - INFO - Generating case notes from transcript
+2025-03-26 23:50:53,891 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-03-26 23:50:53,904 - utils - INFO - Case notes generated successfully
+2025-03-26 23:50:53,921 - utils - INFO - Case notes saved to: case_notes\20250326_000981_jfk-space-race-speech-59951.md

@@ -31,7 +31,19 @@ venv\Scripts\activate
 
 ### Step 3: Install dependencies
 ```bash
+# Make sure pip is up to date
+python -m pip install --upgrade pip
+
+# Install dependencies
 pip install -r requirements.txt
+
+# If you have issues with whisper installation, you might need to install FFmpeg:
+# Windows: Download from https://www.ffmpeg.org/download.html or install with Chocolatey
+# choco install ffmpeg
+# 
+# macOS: brew install ffmpeg
+# 
+# Linux: sudo apt install ffmpeg
 ```
 
 ### Step 4: Add your OpenAI API key
@@ -99,6 +111,12 @@ You can edit the `templates/prompt.txt` file to customize how your notes are str
 - **No audio files found?** Make sure your files are in the `audio_recordings` directory.
 - **API key error?** Check that your OpenAI API key is correct in the `.env` file.
 - **Transcription errors?** Ensure your audio is clear and in a supported format.
+- **Installation issues?** 
+  - Make sure you have Python 3.8+ installed
+  - Try installing packages individually if there are conflicts
+  - FFmpeg is required for whisper - make sure it's installed and in your PATH
+  - If you encounter CUDA/GPU errors, try using CPU for transcription
+- **Permission errors?** Try running your terminal as administrator or use `sudo` on Unix systems
 
 ## 📄 License
 
@@ -107,7 +125,7 @@ This project is licensed under the MIT License.
 ## 📁 Project Structure
 
 ```
-chiro_notes_ai/
+med_notes/
 │
 ├── audio_recordings/         # Place audio files here
 ├── transcriptions/           # Raw transcriptions are saved here
@@ -125,7 +143,7 @@ chiro_notes_ai/
 
 1. Place an audio recording in the `audio_recordings` directory
 2. Run the transcribe command
-3. The audio is transcribed using OpenAI's Whisper model
+3. The audio is transcribed using OpenAI's Whisper model (API or local)
 4. The transcription is processed by an LLM using the prompt template
 5. Structured case notes are displayed and saved
 

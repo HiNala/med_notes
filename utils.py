@@ -5,8 +5,10 @@ from pathlib import Path
 from typing import Dict, Any, Optional, List
 import logging
 from datetime import datetime
+import tempfile
 
 import openai
+import whisper
 from rich.console import Console
 from rich.markdown import Markdown
 from dotenv import load_dotenv
@@ -68,7 +70,7 @@ def list_audio_files() -> List[Path]:
 
 def transcribe_audio(audio_path: Path) -> str:
     """
-    Transcribe audio file using OpenAI's Whisper API.
+    Transcribe audio file using OpenAI's Whisper API or local model.
     
     Args:
         audio_path: Path to the audio file
@@ -80,27 +82,47 @@ def transcribe_audio(audio_path: Path) -> str:
     console.print(f"[bold blue]Transcribing[/bold blue] {audio_path.name}...")
     
     try:
-        with open(audio_path, "rb") as audio_file:
-            with tqdm(total=100, desc="Transcribing") as pbar:
-                # Create transcription
-                response = client.audio.transcriptions.create(
-                    file=audio_file,
-                    model="whisper-1",
-                    response_format="text"
-                )
+        # First try using OpenAI's API
+        try:
+            with open(audio_path, "rb") as audio_file:
+                with tqdm(total=100, desc="Transcribing with OpenAI API") as pbar:
+                    # Create transcription
+                    response = client.audio.transcriptions.create(
+                        file=audio_file,
+                        model="whisper-1",
+                        response_format="text"
+                    )
+                    pbar.update(100)
+                    
+                    transcription = response
+        except Exception as e:
+            # If API fails, fall back to local model
+            logger.warning(f"OpenAI API transcription failed, falling back to local model: {e}")
+            console.print("[yellow]API transcription failed, using local Whisper model...[/yellow]")
+            
+            # Load the Whisper model
+            with tqdm(total=100, desc="Loading Whisper model") as pbar:
+                model = whisper.load_model("base")
+                pbar.update(100)
+            
+            # Transcribe the audio
+            with tqdm(total=100, desc="Transcribing with local model") as pbar:
+                result = model.transcribe(str(audio_path))
                 pbar.update(100)
                 
+                transcription = result["text"]
+        
         # Save transcription to file
         transcript_filename = f"{audio_path.stem}.txt"
         transcript_path = Path("transcriptions") / transcript_filename
         
         with open(transcript_path, "w", encoding="utf-8") as f:
-            f.write(response)
+            f.write(transcription)
             
         logger.info(f"Transcription saved to: {transcript_path}")
         console.print(f"[green]Transcription saved to:[/green] {transcript_path}")
         
-        return response
+        return transcription
     
     except Exception as e:
         logger.error(f"Error transcribing audio: {e}")

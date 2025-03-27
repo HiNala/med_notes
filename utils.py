@@ -177,12 +177,17 @@ def generate_case_notes(transcript: str) -> str:
     template = load_template()
     prompt = template.replace("{{TRANSCRIPT}}", transcript)
     
+    # Use model specified in environment variable or default to gpt-3.5-turbo for cost savings
+    model = os.getenv("GPT_MODEL", "gpt-3.5-turbo")
+    logger.info(f"Using model: {model}")
+    console.print(f"[bold]Using AI model:[/bold] {model}")
+    
     try:
         with tqdm(total=100, desc="Processing with AI") as pbar:
             response = client.chat.completions.create(
-                model="gpt-4",  # Can be configured based on needs
+                model=model,
                 messages=[
-                    {"role": "system", "content": "You are a medical assistant specialized in chiropractic care documentation."},
+                    {"role": "system", "content": "You are a helpful assistant that creates clear summaries of transcripts. Focus on the exact content provided without making assumptions."},
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.3,
@@ -213,14 +218,19 @@ def save_case_notes(filename: str, content: str) -> Path:
     """
     # Create filename with date
     date_str = datetime.now().strftime("%Y%m%d")
-    output_filename = f"{date_str}_{filename}_notes.md"
+    output_filename = f"{date_str}_{filename}_summary.md"
     output_path = CASE_NOTES_DIR / output_filename
     
     # Ensure the directory exists
     os.makedirs(CASE_NOTES_DIR, exist_ok=True)
     
+    # Add header to the content
+    formatted_content = f"# Summary of: {filename}\n\n"
+    formatted_content += f"*Generated on: {datetime.now().strftime('%B %d, %Y')}*\n\n"
+    formatted_content += content
+    
     with open(output_path, "w", encoding="utf-8") as f:
-        f.write(content)
+        f.write(formatted_content)
         
     logger.info(f"Case notes saved to: {output_path}")
     console.print(f"[green]Case notes saved to:[/green] {output_path}")

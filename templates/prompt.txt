@@ -1,1 +1,5 @@
-Just give me the case notes of the transcript in bullet points
+Please summarize the following transcript in bullet points. Focus on the key points from the exact transcript provided below:
+
+{{TRANSCRIPT}}
+
+Provide a bullet-point summary of this specific transcript content.

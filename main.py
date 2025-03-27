@@ -22,7 +22,7 @@ from utils import (
 
 # Initialize Typer CLI app
 app = typer.Typer(
-    help="CLI tool for transcribing and structuring chiropractic case notes",
+    help="CLI tool for transcribing and summarizing audio content",
     add_completion=False
 )
 
@@ -140,16 +140,16 @@ def transcribe_command(
 @app.command("version")
 def version():
     """Display the application version."""
-    console.print("Chiropractic Case Notes Generator v1.0.0")
+    console.print("Transcript Summarization Tool v1.0.0")
 
 
 @app.command("help")
 def help_command():
     """Show detailed help information and examples."""
     rprint(Panel.fit(
-        "[bold blue]Chiropractic Case Notes Generator[/bold blue]\n\n"
-        "This tool helps you transcribe audio recordings of chiropractic sessions\n"
-        "and generates structured case notes using OpenAI's AI models.\n\n"
+        "[bold blue]Transcript Summarization Tool[/bold blue]\n\n"
+        "This tool helps you transcribe audio recordings and generate\n"
+        "structured summaries using OpenAI's AI models.\n\n"
         "[bold yellow]Quick Start:[/bold yellow]\n"
         "1. Place your audio file in the [italic]audio_recordings[/italic] folder\n"
         "2. Run: [italic]python main.py transcribe[/italic]\n"
@@ -167,10 +167,10 @@ def help_command():
 @app.callback()
 def main():
     """
-    Chiropractic Case Notes Generator
+    Transcript Summarization Tool
     
-    A tool for transcribing audio recordings of chiropractic sessions
-    and generating structured case notes using OpenAI's GPT models.
+    A tool for transcribing audio recordings and generating
+    structured summaries using OpenAI's AI models.
     """
     pass
 

@@ -1,11 +1,9 @@
 import os
-import time
 import json
 from pathlib import Path
 from typing import Dict, Any, Optional, List
 import logging
 from datetime import datetime
-import tempfile
 
 import openai
 import whisper

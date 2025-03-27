@@ -2,14 +2,11 @@
 import os
 import sys
 from pathlib import Path
-from typing import Optional, List
+from typing import List
 import logging
 
 import typer
-from rich.console import Console
 from rich.panel import Panel
-from rich.prompt import Confirm
-from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich import print as rprint
 
 from utils import (
@@ -26,8 +23,7 @@ from utils import (
 # Initialize Typer CLI app
 app = typer.Typer(
     help="CLI tool for transcribing and structuring chiropractic case notes",
-    add_completion=False,
-    no_args_is_help=True  # Show help when no args are provided
+    add_completion=False
 )
 
 
@@ -119,13 +115,19 @@ def transcribe_command(
         
         # Display case notes if requested
         if display:
-            console.print(Panel("", title="📝 Generated Case Notes"))
+            console.print(Panel(
+                "[bold cyan]The following are the structured case notes generated from your audio:[/bold cyan]",
+                title="📝 Generated Case Notes"
+            ))
             display_markdown(case_notes)
+            
+            # Add a separator after the case notes for clarity
+            console.print("\n" + "-" * 80 + "\n")
         
         # Save case notes if requested
         if save:
             output_path = save_case_notes(audio_path.stem, case_notes)
-            console.print(f"[green]✓[/green] Case notes saved to: {output_path}")
+            console.print(f"[green]✓[/green] Case notes saved to: [bold]{output_path}[/bold]")
         
         console.print("[bold green]Processing complete![/bold green]")
         
@@ -170,26 +172,11 @@ def main():
     A tool for transcribing audio recordings of chiropractic sessions
     and generating structured case notes using OpenAI's GPT models.
     """
-    # Display welcome message if no command is specified
-    if len(sys.argv) == 1:
-        welcome()
-
-
-def welcome():
-    """Display welcome message and usage instructions."""
-    rprint(Panel.fit(
-        "[bold blue]Welcome to Chiropractic Case Notes Generator![/bold blue]\n\n"
-        "This tool helps you transcribe and structure chiropractic case notes.\n\n"
-        "[bold green]To get started, try one of these commands:[/bold green]\n\n"
-        "• [yellow]python main.py help[/yellow] - Show detailed help\n"
-        "• [yellow]python main.py transcribe[/yellow] - Transcribe an audio file\n"
-        "• [yellow]python main.py transcribe --list[/yellow] - List available audio files\n\n"
-        "For more information, see the README.md file."
-    ))
+    pass
 
 
 if __name__ == "__main__":
+    # If no arguments are provided, run the transcribe command
     if len(sys.argv) == 1:
-        welcome()
-        sys.exit(0)
+        sys.argv.append("transcribe")
     app() 

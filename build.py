@@ -1,185 +1,113 @@
 import os
-import sys
-import subprocess
 import shutil
-from pathlib import Path
+import logging
 import PyInstaller.__main__
-import whisper
+import sys
+from pathlib import Path
+
+# Setup logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('build.log'),
+        logging.StreamHandler()
+    ]
+)
+
+def clean_build_dirs():
+    """Clean build and dist directories"""
+    logging.info("Cleaning build directories...")
+    dirs_to_clean = ['build', 'dist']
+    for dir_name in dirs_to_clean:
+        if os.path.exists(dir_name):
+            shutil.rmtree(dir_name)
+            logging.info(f"Cleaned {dir_name} directory")
+
+def create_required_dirs():
+    """Create required directories"""
+    logging.info("Creating required directories...")
+    dirs_to_create = ['audio_recordings', 'transcriptions', 'case_notes', 'templates']
+    for dir_name in dirs_to_create:
+        os.makedirs(dir_name, exist_ok=True)
+        logging.info(f"Created {dir_name} directory")
+
+def check_required_files():
+    """Check if all required files exist"""
+    logging.info("Checking for required files...")
+    required_files = [
+        'main.py',
+        'gui.py',
+        'utils.py',
+        'requirements.txt',
+        'icon.ico',
+        'templates/prompt.txt'
+    ]
+    
+    missing_files = []
+    for file in required_files:
+        if not os.path.exists(file):
+            missing_files.append(file)
+    
+    if missing_files:
+        error_msg = f"Missing required files: {', '.join(missing_files)}"
+        logging.error(error_msg)
+        raise FileNotFoundError(error_msg)
+    
+    logging.info("All required files found")
 
 def build_executable():
-    print("Building executable...")
-    
-    # Ensure the build directory exists
-    build_dir = Path("build")
-    dist_dir = Path("dist")
-    if build_dir.exists():
-        shutil.rmtree(build_dir)
-    if dist_dir.exists():
-        shutil.rmtree(dist_dir)
-    
-    # Create necessary directories
-    os.makedirs("audio_recordings", exist_ok=True)
-    os.makedirs("transcriptions", exist_ok=True)
-    os.makedirs("case_notes", exist_ok=True)
-    os.makedirs("templates", exist_ok=True)
-    
-    # Get Whisper model path
-    whisper_model_path = Path(whisper.__file__).parent / "assets"
-    
-    # Create PyInstaller spec file
-    spec_content = f"""
-# -*- mode: python ; coding: utf-8 -*-
+    """Build the executable using PyInstaller"""
+    logging.info("Starting build process...")
+    try:
+        # Get PyQt6 paths
+        import PyQt6
+        pyqt_path = os.path.dirname(PyQt6.__file__)
+        qt_path = os.path.join(pyqt_path, "Qt6")
+        webengine_path = os.path.join(qt_path, "plugins", "webengine")
+        resources_path = os.path.join(qt_path, "resources")
+        bin_path = os.path.join(qt_path, "bin")
 
-block_cipher = None
+        PyInstaller.__main__.run([
+            'main.py',
+            '--name=Medical_Note_Taker',
+            '--onefile',
+            '--windowed',
+            '--icon=icon.ico',
+            '--add-data=templates;templates',
+            '--add-data=icon.ico;.',
+            f'--add-data={os.path.join(resources_path, "qtwebengine_resources.pak")};PyQt6/Qt6/resources',
+            f'--add-data={os.path.join(resources_path, "qtwebengine_resources_100p.pak")};PyQt6/Qt6/resources',
+            f'--add-data={os.path.join(resources_path, "qtwebengine_devtools_resources.pak")};PyQt6/Qt6/resources',
+            f'--add-data={os.path.join(bin_path, "QtWebEngineProcess.exe")};PyQt6/Qt6/bin',
+            '--hidden-import=PyQt6.QtWebEngineWidgets',
+            '--hidden-import=PyQt6.QtWebEngineCore',
+            '--collect-all=PyQt6',
+            '--collect-all=openai',
+            '--collect-all=tiktoken',
+            '--collect-all=regex',
+            '--collect-all=tqdm',
+            '--collect-all=requests',
+            '--collect-all=certifi',
+            '--collect-all=charset_normalizer',
+            '--collect-all=idna',
+            '--collect-all=urllib3',
+            '--collect-all=typing_extensions'
+        ])
+        logging.info("Build completed successfully")
+    except Exception as e:
+        logging.error(f"Build failed: {str(e)}")
+        raise
 
-a = Analysis(
-    ['gui.py'],
-    pathex=[],
-    binaries=[],
-    datas=[
-        ('templates', 'templates'),
-        ('.env.example', '.'),
-        ('audio_recordings', 'audio_recordings'),
-        ('transcriptions', 'transcriptions'),
-        ('case_notes', 'case_notes'),
-        ('{whisper_model_path}', 'whisper/assets'),
-    ],
-    hiddenimports=[
-        'openai',
-        'whisper',
-        'whisper.model',
-        'whisper.tokenizer',
-        'whisper.decoding',
-        'whisper.audio',
-        'tqdm',
-        'PyQt6',
-        'PyQt6.QtWebEngineWidgets',
-        'PyQt6.QtWebEngineCore',
-        'PyQt6.QtWebEngine',
-        'python_dotenv',
-        'numpy',
-        'torch',
-        'torchaudio',
-    ],
-    hookspath=[],
-    hooksconfig={{}},
-    runtime_hooks=[],
-    excludes=[],
-    win_no_prefer_redirects=False,
-    win_private_assemblies=False,
-    cipher=block_cipher,
-    noarchive=False,
-)
+def main():
+    try:
+        clean_build_dirs()
+        create_required_dirs()
+        check_required_files()
+        build_executable()
+    except Exception as e:
+        logging.error(f"Build process failed: {str(e)}")
+        sys.exit(1)
 
-# Add binaries for Whisper
-a.binaries += [
-    ('whisper/assets/*.pt', 'whisper/assets', 'DATA'),
-    ('whisper/assets/*.json', 'whisper/assets', 'DATA'),
-]
-
-pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
-
-exe = EXE(
-    pyz,
-    a.scripts,
-    a.binaries,
-    a.zipfiles,
-    a.datas,
-    [],
-    name='Medical_Note_Taker',
-    debug=False,
-    bootloader_ignore_signals=False,
-    strip=False,
-    upx=True,
-    upx_exclude=[],
-    runtime_tmpdir=None,
-    console=True,  # Set to True for debugging
-    disable_windowed_traceback=False,
-    argv_emulation=False,
-    target_arch=None,
-    codesign_identity=None,
-    entitlements_file=None,
-    icon='icon.ico' if os.path.exists('icon.ico') else None,
-)
-"""
-    
-    with open("medical_note.spec", "w") as f:
-        f.write(spec_content)
-    
-    # Run PyInstaller with additional options
-    PyInstaller.__main__.run([
-        'medical_note.spec',
-        '--clean',
-        '--noconfirm',
-        '--add-data', f'{whisper_model_path};whisper/assets',
-        '--hidden-import', 'whisper.model',
-        '--hidden-import', 'whisper.tokenizer',
-        '--hidden-import', 'whisper.decoding',
-        '--hidden-import', 'whisper.audio',
-        '--hidden-import', 'torch',
-        '--hidden-import', 'torchaudio',
-        '--hidden-import', 'numpy',
-    ])
-    
-    # Create necessary directories in the dist folder
-    dist_app_dir = dist_dir / "Medical_Note_Taker"
-    
-    # Create a README file for the distribution
-    readme_content = """Medical Note Taker
-
-A powerful tool for medical professionals to transcribe audio recordings and generate structured case notes using AI.
-
-Installation:
-1. Extract all files to a folder of your choice
-2. Edit the .env file to add your OpenAI API key
-3. Run Medical_Note_Taker.exe
-
-Features:
-- Record or upload audio files
-- Automatic transcription using OpenAI's Whisper
-- AI-powered case note generation
-- Markdown output format
-- Modern GUI interface
-
-System Requirements:
-- Windows 10 or higher
-- OpenAI API key
-- Internet connection for transcription and AI features
-
-For support or issues, please visit the GitHub repository:
-https://github.com/HiNala/med_notes
-"""
-    
-    with open(dist_app_dir / "README.txt", "w") as f:
-        f.write(readme_content)
-    
-    # Create a batch file to run the application
-    batch_content = """@echo off
-echo Starting Medical Note Taker...
-start Medical_Note_Taker.exe
-"""
-    
-    with open(dist_app_dir / "Run_Medical_Note_Taker.bat", "w") as f:
-        f.write(batch_content)
-    
-    # Create a zip file of the distribution
-    import zipfile
-    zip_path = dist_dir / "Medical_Note_Taker.zip"
-    with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
-        for root, dirs, files in os.walk(dist_app_dir):
-            for file in files:
-                file_path = os.path.join(root, file)
-                arcname = os.path.relpath(file_path, dist_app_dir)
-                zipf.write(file_path, arcname)
-    
-    print("\nBuild complete!")
-    print(f"Executable created in: {dist_app_dir}")
-    print(f"Distribution package created: {zip_path}")
-    print("\nTo distribute the application:")
-    print(f"1. Share the {zip_path} file")
-    print("2. Recipients should extract the zip file")
-    print("3. Edit the .env file to add their OpenAI API key")
-    print("4. Run Medical_Note_Taker.exe or Run_Medical_Note_Taker.bat")
-
-if __name__ == "__main__":
-    build_executable() 
+if __name__ == '__main__':
+    main()

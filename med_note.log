@@ -44,3 +44,19 @@
 2025-03-28 18:21:01,823 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
 2025-03-28 18:21:01,841 - utils - INFO - Case notes generated successfully
 2025-03-28 18:21:01,850 - utils - INFO - Case notes saved to: C:\Users\NalaBook\Desktop\Med_Note\case_notes\20250328_000981_jfk-space-race-speech-59951_summary.md
+2025-04-09 05:36:54,583 - utils - INFO - Transcribing audio: audio_recordings\000981_jfk-space-race-speech-59951.mp3
+2025-04-09 05:36:54,594 - utils - ERROR - Error transcribing audio: 'NoneType' object has no attribute 'write'
+2025-04-09 06:17:27,137 - __main__ - INFO - File uploaded successfully: c:\Users\NalaBook\Desktop\Med_Note\audio_recordings\000981_jfk-space-race-speech-59951.mp3
+2025-04-09 06:17:30,590 - utils - INFO - Transcribing audio: c:\Users\NalaBook\Desktop\Med_Note\audio_recordings\000981_jfk-space-race-speech-59951.mp3
+2025-04-09 06:18:05,206 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/audio/transcriptions "HTTP/1.1 200 OK"
+2025-04-09 06:18:05,211 - utils - INFO - Transcription saved to: c:\Users\NalaBook\Desktop\Med_Note\transcriptions\20250409_000981_jfk-space-race-speech-59951_transcript.md
+2025-04-09 06:18:35,648 - utils - INFO - Generating case notes from transcript
+2025-04-09 06:18:35,656 - utils - INFO - Using model: gpt-3.5-turbo
+2025-04-09 06:18:37,735 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-04-09 06:18:37,739 - utils - INFO - Case notes generated successfully
+2025-04-09 06:18:37,747 - utils - INFO - Case notes saved to: c:\Users\NalaBook\Desktop\Med_Note\case_notes\20250409_000981_jfk-space-race-speech-59951_summary.md
+2025-04-09 06:18:43,673 - utils - INFO - Generating case notes from transcript
+2025-04-09 06:18:43,677 - utils - INFO - Using model: gpt-3.5-turbo
+2025-04-09 06:18:45,260 - httpx - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2025-04-09 06:18:45,264 - utils - INFO - Case notes generated successfully
+2025-04-09 06:18:45,269 - utils - INFO - Case notes saved to: c:\Users\NalaBook\Desktop\Med_Note\case_notes\20250409_000981_jfk-space-race-speech-59951_summary.md

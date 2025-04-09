@@ -5,23 +5,10 @@ block_cipher = None
 
 a = Analysis(
     ['gui.py'],
-    pathex=[],
+    pathex=[os.path.abspath('.')],
     binaries=[],
-    datas=[
-        ('templates', 'templates'),
-        ('.env.example', '.'),
-        ('audio_recordings', 'audio_recordings'),
-        ('transcriptions', 'transcriptions'),
-        ('case_notes', 'case_notes'),
-    ],
-    hiddenimports=[
-        'openai',
-        'whisper',
-        'tqdm',
-        'PyQt6',
-        'PyQt6.QtWebEngineWidgets',
-        'python_dotenv',
-    ],
+    datas=[('templates', 'templates'), ('audio_recordings', 'audio_recordings'), ('transcriptions', 'transcriptions'), ('case_notes', 'case_notes'), ('.env.example', '.')],
+    hiddenimports=['openai', 'whisper', 'torch', 'torchaudio', 'numpy', 'tqdm', 'rich', 'python_dotenv', 'PyQt6', 'PyQt6.QtWidgets', 'PyQt6.QtCore', 'PyQt6.QtGui', 'PyQt6.QtWebEngineWidgets', 'PyQt6.QtWebEngineCore', 'PyQt6.QtWebEngine', 'PyQt6.QtWebEngineQuick', 'PyQt6.QtNetwork', 'PyQt6.QtPositioning', 'PyQt6.QtPrintSupport', 'PyQt6.QtQuick', 'PyQt6.QtQuickWidgets', 'PyQt6.QtWebChannel', 'PyQt6.QtOpenGL', 'PyQt6.QtQml'],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
@@ -54,5 +41,5 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon='icon.ico' if os.path.exists('icon.ico') else None,
+    icon='icon.ico',
 )

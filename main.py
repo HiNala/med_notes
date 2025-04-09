@@ -4,10 +4,33 @@ import sys
 from pathlib import Path
 from typing import List
 import logging
+from PyQt6.QtWidgets import QApplication
+from gui import MainWindow
 
 import typer
 from rich.panel import Panel
 from rich import print as rprint
+from rich.markdown import Markdown
+
+# Determine if we're running as a script or as a bundled executable
+if getattr(sys, 'frozen', False):
+    # If the application is run as a bundle (exe)
+    BASE_DIR = Path(sys._MEIPASS)
+else:
+    # If the application is run as a script
+    BASE_DIR = Path(__file__).parent
+
+# Setup logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler(BASE_DIR / 'app.log'),
+        logging.StreamHandler()
+    ]
+)
+
+logger = logging.getLogger(__name__)
 
 from utils import (
     ensure_directories_exist,
@@ -29,112 +52,70 @@ app = typer.Typer(
 
 @app.command("transcribe")
 def transcribe_command(
-    audio_file: str = typer.Argument(None, help="Path to the audio file to transcribe"),
-    list_files: bool = typer.Option(False, "--list", "-l", help="List available audio files"),
-    save: bool = typer.Option(True, help="Save the case notes to a file"),
-    display: bool = typer.Option(True, help="Display the case notes in the terminal"),
+    audio_file: str = typer.Argument(..., help="Path to the audio file to transcribe"),
+    output_file: str = typer.Option(None, "--output", "-o", help="Path to save the transcription"),
+    model: str = typer.Option("gpt-4", "--model", "-m", help="OpenAI model to use for transcription"),
+    overwrite: bool = typer.Option(False, "--overwrite", help="Overwrite existing transcription file")
 ):
-    """
-    Transcribe an audio recording and generate structured case notes.
-    
-    If no audio file is specified, the application will list available files
-    and prompt you to select one.
-    """
-    # Ensure all necessary directories exist
-    ensure_directories_exist()
-    
-    # Check API key
-    if not os.getenv("OPENAI_API_KEY"):
-        console.print(Panel(
-            "[bold red]OpenAI API key not found![/bold red]\n"
-            "Please set your API key in a .env file or as an environment variable:\n"
-            "OPENAI_API_KEY=your_api_key_here",
-            title="Error"
-        ))
-        raise typer.Exit(code=1)
-    
-    # List audio files and exit if requested
-    if list_files:
-        audio_files = list_audio_files()
-        if not audio_files:
-            console.print("[yellow]No audio files found in the 'audio_recordings' directory.[/yellow]")
-            return
-        
-        console.print("[bold]Available audio files:[/bold]")
-        for i, file in enumerate(audio_files, 1):
-            console.print(f"{i}. {file.name}")
-        return
-    
-    # Get the audio file to process
-    audio_path = None
-    
-    if audio_file:
-        # User provided a file
-        audio_path = Path(audio_file)
-        if not audio_path.exists():
-            # Try looking in the audio_recordings directory
-            audio_path = Path("audio_recordings") / audio_path.name
-            if not audio_path.exists():
-                console.print(f"[bold red]Error:[/bold red] Audio file not found: {audio_file}")
-                raise typer.Exit(code=1)
-    else:
-        # No file provided, let user select from list
-        audio_files = list_audio_files()
-        
-        if not audio_files:
-            console.print(
-                "[yellow]No audio files found in the 'audio_recordings' directory.[/yellow]\n"
-                "Please add audio files to this directory and try again."
-            )
-            raise typer.Exit(code=1)
-        
-        console.print("[bold]Available audio files:[/bold]")
-        for i, file in enumerate(audio_files, 1):
-            console.print(f"{i}. {file.name}")
-        
-        # Prompt user to select a file
-        selection = typer.prompt("Select a file by number", type=int)
-        
-        try:
-            audio_path = audio_files[selection - 1]
-        except IndexError:
-            console.print("[bold red]Invalid selection[/bold red]")
-            raise typer.Exit(code=1)
-    
-    # Process the audio file
-    console.print(Panel(f"Processing audio file: [bold]{audio_path.name}[/bold]", title="🔊 Audio Processing"))
-    
+    """Transcribe an audio file using OpenAI's Whisper API."""
     try:
-        # Transcribe audio file
-        transcript = transcribe_audio(audio_path)
-        console.print("[green]✓[/green] Transcription completed")
+        # Convert paths to Path objects
+        audio_path = Path(audio_file)
+        output_path = Path(output_file) if output_file else None
         
-        # Generate case notes
-        case_notes = generate_case_notes(transcript)
-        console.print("[green]✓[/green] Case notes generated")
+        # If running as exe, look for files in the correct location
+        if getattr(sys, 'frozen', False):
+            if not audio_path.is_absolute():
+                audio_path = BASE_DIR / "audio_recordings" / audio_path.name
+            if output_path and not output_path.is_absolute():
+                output_path = BASE_DIR / "transcriptions" / output_path.name
         
-        # Display case notes if requested
-        if display:
-            console.print(Panel(
-                "[bold cyan]The following are the structured case notes generated from your audio:[/bold cyan]",
-                title="📝 Generated Case Notes"
-            ))
-            display_markdown(case_notes)
-            
-            # Add a separator after the case notes for clarity
-            console.print("\n" + "-" * 80 + "\n")
+        # Validate audio file
+        if not audio_path.exists():
+            console.print(f"[red]Error: Audio file not found: {audio_path}[/red]")
+            raise typer.Exit(1)
         
-        # Save case notes if requested
-        if save:
-            output_path = save_case_notes(audio_path.stem, case_notes)
-            console.print(f"[green]✓[/green] Case notes saved to: [bold]{output_path}[/bold]")
+        if not audio_path.is_file():
+            console.print(f"[red]Error: Not a valid file: {audio_path}[/red]")
+            raise typer.Exit(1)
         
-        console.print("[bold green]Processing complete![/bold green]")
+        # Check if output file exists
+        if output_path and output_path.exists() and not overwrite:
+            try:
+                console.print(f"[yellow]Warning: Output file already exists: {output_path}[/yellow]")
+                response = input("Do you want to overwrite it? (y/n): ").strip().lower()
+                if response != 'y':
+                    console.print("[yellow]Operation cancelled[/yellow]")
+                    raise typer.Exit(0)
+            except Exception as e:
+                console.print(f"[red]Error reading input: {e}[/red]")
+                raise typer.Exit(1)
+        
+        # Transcribe the audio file
+        with console.status("[bold green]Transcribing audio...[/bold green]"):
+            try:
+                transcript = transcribe_audio(audio_path)
+            except Exception as e:
+                console.print(f"[red]Error transcribing audio: {e}[/red]")
+                raise typer.Exit(1)
+        
+        # Save the transcription
+        if output_path:
+            try:
+                with open(output_path, "w", encoding="utf-8") as f:
+                    f.write(transcript)
+                console.print(f"[green]Transcription saved to: {output_path}[/green]")
+            except Exception as e:
+                console.print(f"[red]Error saving transcription: {e}[/red]")
+                raise typer.Exit(1)
+        else:
+            # Print the transcription to console
+            console.print("\n[bold]Transcription:[/bold]")
+            console.print(Markdown(transcript))
         
     except Exception as e:
-        logger.error(f"Error processing audio: {e}")
-        console.print(f"[bold red]Error:[/bold red] {str(e)}")
-        raise typer.Exit(code=1)
+        console.print(f"[red]Error: {e}[/red]")
+        raise typer.Exit(1)
 
 
 @app.command("version")
@@ -172,11 +153,18 @@ def main():
     A tool for transcribing audio recordings and generating
     structured summaries using OpenAI's AI models.
     """
-    pass
+    try:
+        app = QApplication(sys.argv)
+        window = MainWindow()
+        window.show()
+        sys.exit(app.exec())
+    except Exception as e:
+        logging.error(f"Application error: {str(e)}")
+        sys.exit(1)
 
 
 if __name__ == "__main__":
     # If no arguments are provided, run the transcribe command
     if len(sys.argv) == 1:
         sys.argv.append("transcribe")
-    app() 
+    main() 

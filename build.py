@@ -4,6 +4,7 @@ import subprocess
 import shutil
 from pathlib import Path
 import PyInstaller.__main__
+import whisper
 
 def build_executable():
     print("Building executable...")
@@ -22,6 +23,9 @@ def build_executable():
     os.makedirs("case_notes", exist_ok=True)
     os.makedirs("templates", exist_ok=True)
     
+    # Get Whisper model path
+    whisper_model_path = Path(whisper.__file__).parent / "assets"
+    
     # Create PyInstaller spec file
     spec_content = f"""
 # -*- mode: python ; coding: utf-8 -*-
@@ -38,14 +42,24 @@ a = Analysis(
         ('audio_recordings', 'audio_recordings'),
         ('transcriptions', 'transcriptions'),
         ('case_notes', 'case_notes'),
+        ('{whisper_model_path}', 'whisper/assets'),
     ],
     hiddenimports=[
         'openai',
         'whisper',
+        'whisper.model',
+        'whisper.tokenizer',
+        'whisper.decoding',
+        'whisper.audio',
         'tqdm',
         'PyQt6',
         'PyQt6.QtWebEngineWidgets',
+        'PyQt6.QtWebEngineCore',
+        'PyQt6.QtWebEngine',
         'python_dotenv',
+        'numpy',
+        'torch',
+        'torchaudio',
     ],
     hookspath=[],
     hooksconfig={{}},
@@ -56,6 +70,12 @@ a = Analysis(
     cipher=block_cipher,
     noarchive=False,
 )
+
+# Add binaries for Whisper
+a.binaries += [
+    ('whisper/assets/*.pt', 'whisper/assets', 'DATA'),
+    ('whisper/assets/*.json', 'whisper/assets', 'DATA'),
+]
 
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 
@@ -73,7 +93,7 @@ exe = EXE(
     upx=True,
     upx_exclude=[],
     runtime_tmpdir=None,
-    console=False,
+    console=True,  # Set to True for debugging
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,
@@ -86,11 +106,19 @@ exe = EXE(
     with open("medical_note.spec", "w") as f:
         f.write(spec_content)
     
-    # Run PyInstaller
+    # Run PyInstaller with additional options
     PyInstaller.__main__.run([
         'medical_note.spec',
         '--clean',
         '--noconfirm',
+        '--add-data', f'{whisper_model_path};whisper/assets',
+        '--hidden-import', 'whisper.model',
+        '--hidden-import', 'whisper.tokenizer',
+        '--hidden-import', 'whisper.decoding',
+        '--hidden-import', 'whisper.audio',
+        '--hidden-import', 'torch',
+        '--hidden-import', 'torchaudio',
+        '--hidden-import', 'numpy',
     ])
     
     # Create necessary directories in the dist folder

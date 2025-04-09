@@ -6,7 +6,8 @@ from PyQt6.QtWidgets import (
     QPushButton, QLabel, QListWidget, QTextEdit, QFileDialog,
     QProgressBar, QMessageBox, QComboBox, QGroupBox, QLineEdit,
     QTabWidget, QSplitter, QToolBar, QStatusBar, QMenuBar, QMenu,
-    QDialog, QFormLayout, QDialogButtonBox
+    QDialog, QFormLayout, QDialogButtonBox, QMessageBox, QInputDialog,
+    QTextBrowser
 )
 from PyQt6.QtCore import Qt, QThread, pyqtSignal, QUrl
 from PyQt6.QtGui import QFont, QIcon, QAction, QDesktopServices
@@ -19,7 +20,9 @@ from utils import (
     generate_case_notes,
     save_case_notes,
     logger,
-    load_dotenv
+    load_dotenv,
+    load_template,
+    TEMPLATES_DIR
 )
 
 class ApiKeyDialog(QDialog):
@@ -30,10 +33,17 @@ class ApiKeyDialog(QDialog):
         
         layout = QFormLayout(self)
         
+        # API Key input
         self.api_key_input = QLineEdit()
         self.api_key_input.setEchoMode(QLineEdit.EchoMode.Password)
         layout.addRow("OpenAI API Key:", self.api_key_input)
         
+        # Test API Key button
+        self.test_button = QPushButton("Test API Key")
+        self.test_button.clicked.connect(self.test_api_key)
+        layout.addRow("", self.test_button)
+        
+        # Buttons
         buttons = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
         )
@@ -46,6 +56,21 @@ class ApiKeyDialog(QDialog):
         existing_key = os.getenv("OPENAI_API_KEY", "")
         if existing_key:
             self.api_key_input.setText(existing_key)
+    
+    def test_api_key(self):
+        api_key = self.api_key_input.text()
+        if not api_key:
+            QMessageBox.warning(self, "Error", "Please enter an API key")
+            return
+        
+        try:
+            import openai
+            openai.api_key = api_key
+            # Test the API key with a simple request
+            openai.models.list()
+            QMessageBox.information(self, "Success", "API key is valid!")
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Invalid API key: {str(e)}")
 
 class WorkerThread(QThread):
     progress = pyqtSignal(int, str)  # progress percentage and status message
@@ -75,6 +100,82 @@ class WorkerThread(QThread):
         except Exception as e:
             self.error.emit(str(e))
 
+class TemplateDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Edit Template")
+        self.setMinimumSize(800, 600)
+        
+        layout = QVBoxLayout(self)
+        
+        # System prompt section
+        system_group = QGroupBox("System Prompt")
+        system_layout = QVBoxLayout()
+        self.system_prompt = QTextEdit()
+        self.system_prompt.setPlaceholderText("Enter the system prompt that defines how the AI should process the transcript...")
+        system_layout.addWidget(self.system_prompt)
+        system_group.setLayout(system_layout)
+        
+        # User prompt section
+        user_group = QGroupBox("User Prompt Template")
+        user_layout = QVBoxLayout()
+        self.user_prompt = QTextEdit()
+        self.user_prompt.setPlaceholderText("Enter the template for the user prompt. Use {{TRANSCRIPT}} as a placeholder for the transcript...")
+        user_layout.addWidget(self.user_prompt)
+        user_group.setLayout(user_layout)
+        
+        # Buttons
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel
+        )
+        buttons.accepted.connect(self.save_template)
+        buttons.rejected.connect(self.reject)
+        
+        # Add widgets to main layout
+        layout.addWidget(system_group)
+        layout.addWidget(user_group)
+        layout.addWidget(buttons)
+        
+        # Load existing template
+        self.load_existing_template()
+    
+    def load_existing_template(self):
+        try:
+            template_data = load_template()
+            self.system_prompt.setText(template_data["system_content"])
+            self.user_prompt.setText(template_data["user_template"])
+        except Exception as e:
+            QMessageBox.warning(self, "Error", f"Could not load existing template: {str(e)}")
+    
+    def save_template(self):
+        system_content = self.system_prompt.toPlainText().strip()
+        user_template = self.user_prompt.toPlainText().strip()
+        
+        if not system_content or not user_template:
+            QMessageBox.warning(self, "Error", "Both system prompt and user template are required.")
+            return
+        
+        try:
+            # Create templates directory if it doesn't exist
+            os.makedirs(TEMPLATES_DIR, exist_ok=True)
+            
+            # Format the template with YAML-like front matter
+            template_content = "---\n"
+            template_content += "role: system\n"
+            template_content += f"content: {system_content}\n"
+            template_content += "---\n\n"
+            template_content += user_template
+            
+            # Save to file
+            template_path = TEMPLATES_DIR / "prompt.txt"
+            with open(template_path, "w", encoding="utf-8") as f:
+                f.write(template_content)
+            
+            QMessageBox.information(self, "Success", "Template saved successfully!")
+            self.accept()
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Could not save template: {str(e)}")
+
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -83,6 +184,9 @@ class MainWindow(QMainWindow):
         
         # Ensure directories exist
         ensure_directories_exist()
+        
+        # Check for API key
+        self.check_api_key()
         
         # Create menu bar
         self.create_menu_bar()
@@ -210,6 +314,29 @@ class MainWindow(QMainWindow):
         output_layout.addWidget(output_group)
         tabs.addTab(output_tab, "Output")
         
+        # Add template management tab
+        template_tab = QWidget()
+        template_layout = QVBoxLayout(template_tab)
+        
+        # Template management controls
+        template_group = QGroupBox("Template Management")
+        template_layout.addWidget(template_group)
+        
+        # Template management layout
+        template_group_layout = QVBoxLayout()
+        
+        # Template management buttons
+        template_button_layout = QHBoxLayout()
+        self.edit_template_button = QPushButton("Edit Template")
+        self.edit_template_button.clicked.connect(self.edit_template)
+        template_button_layout.addWidget(self.edit_template_button)
+        
+        template_group_layout.addLayout(template_button_layout)
+        template_group.setLayout(template_group_layout)
+        
+        template_layout.addWidget(template_group)
+        tabs.addTab(template_tab, "Template Management")
+        
         # Add tabs to main layout
         layout.addWidget(tabs)
         
@@ -241,6 +368,18 @@ class MainWindow(QMainWindow):
             }
         """)
 
+    def check_api_key(self):
+        load_dotenv()
+        if not os.getenv("OPENAI_API_KEY"):
+            reply = QMessageBox.question(
+                self,
+                "API Key Required",
+                "No OpenAI API key found. Would you like to set one now?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+            )
+            if reply == QMessageBox.StandardButton.Yes:
+                self.set_api_key()
+
     def create_menu_bar(self):
         menubar = self.menuBar()
         
@@ -263,6 +402,11 @@ class MainWindow(QMainWindow):
         about_action = QAction("About", self)
         about_action.triggered.connect(self.show_about)
         help_menu.addAction(about_action)
+        
+        # Add template management to menu bar
+        template_action = QAction("Edit Template", self)
+        template_action.triggered.connect(self.edit_template)
+        file_menu.addAction(template_action)
 
     def create_toolbar(self):
         toolbar = QToolBar()
@@ -279,6 +423,11 @@ class MainWindow(QMainWindow):
         refresh_action = QAction("Refresh Files", self)
         refresh_action.triggered.connect(self.refresh_file_list)
         toolbar.addAction(refresh_action)
+        
+        # Add template management to toolbar
+        template_toolbar_action = QAction("Edit Template", self)
+        template_toolbar_action.triggered.connect(self.edit_template)
+        toolbar.addAction(template_toolbar_action)
 
     def set_api_key(self):
         dialog = ApiKeyDialog(self)
@@ -319,6 +468,18 @@ class MainWindow(QMainWindow):
             self.preview_label.setText(f"Selected file: {item.text()}\nSize: {file_path.stat().st_size / 1024:.1f} KB")
 
     def process_file(self):
+        # Check for API key before processing
+        if not os.getenv("OPENAI_API_KEY"):
+            reply = QMessageBox.question(
+                self,
+                "API Key Required",
+                "No OpenAI API key found. Would you like to set one now?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+            )
+            if reply == QMessageBox.StandardButton.Yes:
+                self.set_api_key()
+                return
+        
         selected_items = self.file_list.selectedItems()
         if not selected_items:
             return
@@ -435,6 +596,10 @@ class MainWindow(QMainWindow):
                 "File Not Found",
                 "Case notes file not found. Please process the audio file first."
             )
+
+    def edit_template(self):
+        dialog = TemplateDialog(self)
+        dialog.exec()
 
 def main():
     app = QApplication(sys.argv)

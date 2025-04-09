@@ -177,4 +177,122 @@ This project is licensed under the MIT License.
 
 ## 🤝 Contributing
 
-Contributions, issues, and feature requests are welcome! Feel free to check the issues page. 
+Contributions, issues, and feature requests are welcome! Feel free to check the issues page.
+
+# Medical Note Taker
+
+A powerful tool for medical professionals to transcribe audio recordings and generate structured case notes using AI.
+
+## Features
+
+- 🎤 Record or upload audio files
+- 🎯 Automatic transcription using OpenAI's Whisper
+- 🤖 AI-powered case note generation
+- 📝 Markdown output format
+- 💻 Modern GUI interface
+- 🚀 Standalone executable for easy distribution
+
+## Installation
+
+### Option 1: Using the Executable (Recommended)
+
+1. Download the latest release from the [Releases](https://github.com/yourusername/medical-note-taker/releases) page
+2. Extract the zip file
+3. Edit the `.env` file to add your OpenAI API key
+4. Run `Medical_Note_Taker.exe`
+
+### Option 2: From Source
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/yourusername/medical-note-taker.git
+   cd medical-note-taker
+   ```
+
+2. Create a virtual environment and activate it:
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   ```
+
+3. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. Copy `.env.example` to `.env` and add your OpenAI API key:
+   ```bash
+   cp .env.example .env
+   ```
+
+5. Run the application:
+   ```bash
+   python gui.py
+   ```
+
+## Building the Executable
+
+To build the executable yourself:
+
+1. Install PyInstaller:
+   ```bash
+   pip install pyinstaller
+   ```
+
+2. Run the build script:
+   ```bash
+   python build.py
+   ```
+
+The executable will be created in the `dist/Medical_Note_Taker` directory.
+
+## Usage
+
+1. **Record or Upload Audio**:
+   - Click "Record New" to record audio directly (coming soon)
+   - Click "Upload File" to select an existing audio file
+
+2. **Process Audio**:
+   - Select an audio file from the list
+   - Click "Process Selected File"
+   - Wait for the transcription and case note generation to complete
+
+3. **View Results**:
+   - Transcriptions are saved in the `transcriptions` directory
+   - Case notes are saved in the `case_notes` directory
+   - Both are saved in Markdown format for easy reading and editing
+
+## Directory Structure
+
+```
+medical-note-taker/
+├── audio_recordings/    # Store your audio files here
+├── transcriptions/      # Generated transcriptions
+├── case_notes/         # Generated case notes
+├── templates/          # Prompt templates
+├── gui.py             # GUI application
+├── main.py            # CLI application
+├── utils.py           # Core functionality
+├── build.py           # Build script
+└── requirements.txt   # Python dependencies
+```
+
+## Requirements
+
+- Python 3.8 or higher
+- OpenAI API key
+- Windows 10 or higher (for the executable)
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Acknowledgments
+
+- OpenAI for their Whisper and GPT models
+- PyQt6 for the GUI framework
+- PyInstaller for creating standalone executables 

@@ -5,4 +5,5 @@ rich>=10.0.0
 whisper>=1.0.0
 tqdm>=4.65.0
 PyQt6>=6.4.0
+PyQt6-WebEngine>=6.4.0
 pyinstaller>=5.0.0 
